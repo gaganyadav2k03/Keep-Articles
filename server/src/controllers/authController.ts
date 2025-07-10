@@ -5,9 +5,19 @@ import { AuthenticatedRequest } from '../middleware/verifyAccessToken';
 export const userMe = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userInfo = req.user as JwtPayload;
+    const user=await User.findById(userInfo?.id);
+    // console.log(user);
    
-    res.json(userInfo);
-    console.log("this is me", userInfo);
+    res.json({
+      id:userInfo?.id,
+      role:userInfo?.role,
+      name:userInfo?.name,
+      email:userInfo?.email,
+      following:user?.following,
+      followers:user?.followers
+
+  });
+  console.log(user?.following,"name");
     return;
   } catch (err) {
     res.status(401).json({ message: "Invalid token" });

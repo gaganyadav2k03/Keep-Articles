@@ -10,75 +10,63 @@ import { CustomError } from "../utils/customError";
 import { io, connectedUsers } from "../../server";
 import { Notification } from "../model/notify.model";
 import { Message } from "../model/message.model";
+import mongoose from "mongoose";
 
-const addMessage = async (req: AuthenticatedRequest, res: Response) => {
+
+
+const getUnreadCounts = async (req:AuthenticatedRequest, res:Response) => {
+  const currentUser = req.user as JwtPayload
+  const currentUserId=currentUser?.id
+
   try {
-    const userInfo=req.user as JwtPayload
-    const userId=userInfo?.id;
-    const { sender, receiver, text } = req?.body;
-    console.log(sender, receiver, text);
-    if (!sender || !receiver || !text) {
-      res.status(400).json({
-        message: "data is missing",
-      });
-      return;
-    }
-    const socketid=connectedUsers.get(receiver as string)
-    const message=await Message.create({
-      sender,
-      receiver,
-      text,
+    const unread = await Message.aggregate([
+      {
+        $match: {
+          receiver: new mongoose.Types.ObjectId(currentUserId),
+          isRead: false,
+        },
+      },
+      {
+        $group: {
+          _id: "$sender",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const result: { [key: string]: number } = {};
+    unread.forEach((item) => {
+      result[item?._id.toString()] = item.count;
     });
-    console.log("shocket id ",socketid)
-    if(socketid){
-        io.to(socketid).emit('receive-message',message);
-        console.log("message emited",message,socketid)
-    }
-    //handling messageData
-    const user=await User.findOne({_id:userId});
-   const alreadyMessaged = user?.messageData?.includes(receiver);
 
-    if (alreadyMessaged) {
-      await User.findByIdAndUpdate(userId, {
-        $pull: { messageData: receiver },
-      });
-      user?.messageData?.push(receiver);
-    } else {
-      await user?.messageData.push(receiver);
-    }
-
-    await user?.save();
-
-//
-
-
-    console.log("message created");
-    res.status(400).json({ message: "sent successfully" });
-    return;
-  } catch (error) {
-    console.log("error", error);
-    res.status(400).json({ message: "Internal error" });
-    return;
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to get unread counts" });
   }
 };
 
-const messageById = async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const userInfo = req.user as JwtPayload;
-    const receiver = userInfo?.id;
-    const sender = req?.params?.id;
-    console.log("from all messages ", receiver);
-    const messages = await Message.find({
-      $or: [
-        { receiver: receiver, sender: sender },
-        { receiver: sender, sender: receiver }
-      ]
-    });
-    console.log("messages are here", messages);
-    res.status(200).json(messages);
+const markMessagesAsRead = async (req:AuthenticatedRequest ,res:Response) => {
+   const currentUser = req.user as JwtPayload
+  const currentUserId=currentUser?.id
+  const fromUserId = req?.params?.userId;
 
-    return;
-  } catch (error) {
-    res.status(400).json(`internal error`);
+  try {
+    await Message.updateMany(
+      {
+        sender: fromUserId,
+        receiver: currentUserId,
+        isRead: false,
+      },
+      { $set: { isRead: true } }
+    );
+    res.status(200).json({message:"marked"});
+  } catch (err) {
+    res.status(500).json({ message: "Failed to mark messages as read" });
   }
 };
+
+
+export {
+  getUnreadCounts,
+  markMessagesAsRead
+}

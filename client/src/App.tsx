@@ -22,6 +22,7 @@ import PublicRoute from './components/PublicRoute';
 function App() {
     const [showUsers, setShowUsers] = useState(false);
     const {user}= useAuth()
+    console.error(user,"from app");
     
   return (
     <Router>

@@ -9,8 +9,8 @@ import {
   IconButton,
   useMediaQuery,
   useTheme,
+  Grid,
 } from "@mui/material";
-import Grid2 from "@mui/material/Unstable_Grid2"; // Grid v2
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -24,6 +24,9 @@ interface Article {
   title: string;
   description: string;
   likes: string[];
+  user: string;
+  name: string;
+  email: string;
 }
 
 export default function ListArticles() {
@@ -31,6 +34,9 @@ export default function ListArticles() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [filtered, setFiltered] = useState<Article[]>([]);
   const [likedIds, setLikedIds] = useState<string[]>([]);
+  const [followingIds, setFollowingIds] = useState<string[]>(
+    user?.following || []
+  );
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const theme = useTheme();
@@ -52,10 +58,15 @@ export default function ListArticles() {
       .then((res) => {
         setArticles(res.data);
         setFiltered(res.data);
+
         const liked = res.data
           .filter((a: Article) => user?.id && a.likes.includes(user.id))
           .map((a: Article) => a.id);
         setLikedIds(liked);
+
+        if (user?.following) {
+          setFollowingIds(user.following);
+        }
       })
       .finally(() => setLoading(false));
   }, [user]);
@@ -90,6 +101,23 @@ export default function ListArticles() {
     }
   };
 
+  const handleFollow = async (authorId: string) => {
+    try {
+      if (!user) return navigate("/login");
+
+      const res = await axios.post(`/user/follow/${authorId}`);
+      const isNowFollowing = res.data.following;
+
+      setFollowingIds((prev) =>
+        isNowFollowing
+          ? [...prev, authorId]
+          : prev.filter((id) => id !== authorId)
+      );
+    } catch (err) {
+      console.error("Follow/Unfollow failed", err);
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", mt: 6 }}>
@@ -100,7 +128,7 @@ export default function ListArticles() {
 
   return (
     <Container sx={{ mt: 6, mb: 4 }}>
-      {/* Header and Search Bar */}
+      {/* Header and Search */}
       <Box
         sx={{
           display: "flex",
@@ -111,12 +139,7 @@ export default function ListArticles() {
           gap: 2,
         }}
       >
-        <Box
-          sx={{
-            flexGrow: 1,
-            textAlign: isMobile ? "center" : "center",
-          }}
-        >
+        <Box sx={{ flexGrow: 1, textAlign: "center" }}>
           <Typography
             variant={isMobile ? "h5" : "h4"}
             sx={{ fontWeight: 700, color: "#2c3e50" }}
@@ -125,18 +148,29 @@ export default function ListArticles() {
           </Typography>
         </Box>
 
-        <Box sx={{ display: "flex", justifyContent: "flex-end", width: isMobile ? "100%" : "auto" }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "flex-end",
+            width: isMobile ? "100%" : "auto",
+          }}
+        >
           <SearchBar onSearch={handleSearch} placeholder="Search articles..." />
         </Box>
       </Box>
 
       {/* Cards Grid */}
-      <Grid2 container spacing={4}>
+      <Grid container spacing={4}>
         {filtered.map((a) => (
-          <Grid2 key={a.id} xs={12} sm={6} md={4}>
+          <Grid
+            key={a.id}
+            size={{ xs: 12, sm: 6, md: 4 }}
+            display="flex"
+            alignItems="stretch"
+          >
             <Card
               sx={{
-                height: "100%",
+                flex: 1,
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
@@ -154,12 +188,47 @@ export default function ListArticles() {
             >
               <CardContent
                 sx={{
+                  flexGrow: 1,
                   display: "flex",
                   flexDirection: "column",
-                  height: "100%",
                 }}
               >
-                {/* Content Area */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    mb: 1,
+                  }}
+                >
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ fontWeight: 600, color: "#3c3c3c" }}
+                  >
+                    👤 {a.name}
+                  </Typography>
+
+                  {user?.id !== a.user && (
+                    <button
+                      onClick={() => handleFollow(a.user)}
+                      style={{
+                        backgroundColor: followingIds.includes(a.user)
+                          ? "rgb(64, 130, 211)"
+                          : "rgb(90, 153, 231)",
+                        color: "#fff",
+                        padding: "4px 10px",
+                        borderRadius: "6px",
+                        fontSize: "12px",
+                        cursor: "pointer",
+                        border: "none",
+                        transition: "background 0.3s ease",
+                      }}
+                    >
+                      {followingIds.includes(a.user) ? "Following" : "Follow"}
+                    </button>
+                  )}
+                </Box>
+
                 <Box sx={{ flexGrow: 1 }}>
                   <Typography
                     variant="h6"
@@ -178,7 +247,6 @@ export default function ListArticles() {
                   </Typography>
                 </Box>
 
-                {/* Bottom Row */}
                 <Box
                   mt={3}
                   display="flex"
@@ -220,9 +288,9 @@ export default function ListArticles() {
                 </Box>
               </CardContent>
             </Card>
-          </Grid2>
+          </Grid>
         ))}
-      </Grid2>
+      </Grid>
     </Container>
   );
 }

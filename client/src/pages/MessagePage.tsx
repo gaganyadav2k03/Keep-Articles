@@ -38,6 +38,7 @@ export default function MessagePage() {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
 
   const socketRef = useRef(getSocket());
 
@@ -57,9 +58,15 @@ export default function MessagePage() {
   useEffect(() => {
     if (!user?.id) return;
 
+    // Fetch chat users
     axios.get("/user/messageList").then((res) => {
       const filtered = res.data.filter((u: ChatUser) => u.id !== user.id);
       setUsers(filtered);
+    });
+
+    // Fetch unread counts
+    axios.get("/user/unreadCounts").then((res) => {
+      setUnreadCounts(res.data); // Format: { userId: count }
     });
   }, [user]);
 
@@ -67,11 +74,21 @@ export default function MessagePage() {
     if (!selectedUser) return;
     setLoading(true);
 
+    // Fetch messages
     axios
       .get(`/user/messages/${selectedUser.id}`)
       .then((res) => setMessages(res.data))
       .catch(() => setMessages([]))
       .finally(() => setLoading(false));
+
+    // Mark as read
+    axios.post(`/user/markAsRead/${selectedUser.id}`).then(() => {
+      setUnreadCounts((prev) => {
+        const updated = { ...prev };
+        delete updated[selectedUser.id];
+        return updated;
+      });
+    });
   }, [selectedUser]);
 
   useEffect(() => {
@@ -83,6 +100,12 @@ export default function MessagePage() {
         msg.receiver === selectedUser?.id
       ) {
         setMessages((prev) => [...prev, msg]);
+      } else {
+        // Update unread count
+        setUnreadCounts((prev) => ({
+          ...prev,
+          [msg.sender]: (prev[msg.sender] || 0) + 1,
+        }));
       }
 
       setUsers((prev) => {
@@ -123,7 +146,7 @@ export default function MessagePage() {
 
     try {
       await axios.post("/user/messages", newMessage);
-      socketRef.current.emit("send-message", newMessage);
+      // socketRef.current.emit("send-message", newMessage);
     } catch (error) {
       console.error("Failed to send message", error);
     }
@@ -157,6 +180,8 @@ export default function MessagePage() {
         <List>
           {users.map((u) => {
             const isOnline = onlineUserIds.includes(u.id);
+            const unread = unreadCounts[u.id] || 0;
+
             return (
               <ListItemButton
                 key={u.id}
@@ -199,7 +224,30 @@ export default function MessagePage() {
                 </Box>
                 <ListItemText
                   primary={
-                    <Typography sx={{ fontWeight: 500 }}>{u.name}</Typography>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Typography sx={{ fontWeight: 500 }}>{u.name}</Typography>
+                      {unread > 0 && (
+                        <Box
+                          sx={{
+                            backgroundColor: "rgb(90,90,90)",
+                            color: "white",
+                            borderRadius: "12px",
+                            padding: "2px 8px",
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                            ml: 1,
+                          }}
+                        >
+                          {unread}
+                        </Box>
+                      )}
+                    </Box>
                   }
                 />
               </ListItemButton>

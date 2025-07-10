@@ -10,10 +10,13 @@ import { CustomError } from "../utils/customError";
 import { io, connectedUsers } from "../../server";
 import { Notification } from "../model/notify.model";
 import { Message } from "../model/message.model";
-import { error } from "console";
 
-const registerUser = async (req: Request, res: Response, next: NextFunction) => {
-  try {
+const registerUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try { console.warn("hello")
     const { name, email, password, role }: IUser = req.body;
 
     if (!name || !email || !password) {
@@ -28,20 +31,19 @@ const registerUser = async (req: Request, res: Response, next: NextFunction) => 
     if (existingUser) {
       return next(new CustomError("Email already registered"));
     }
-  //  console.log("still running ...")
+    //  console.log("still running ...")
     const newUser = new User({ name, email, password, role });
     await newUser.save();
 
-     res.status(201).json({ message: "User registered successfully" });
-     return;
-
+    res.status(201).json({ message: "User registered successfully" });
+    return;
   } catch (error) {
     console.error("Error registering user:", error);
     return next(error);
   }
 };
 
-const loginUser = async (req: Request, res: Response):Promise<void> => {
+const loginUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password }: IUser = req.body;
     // Check if user exists
@@ -60,7 +62,7 @@ const loginUser = async (req: Request, res: Response):Promise<void> => {
       res.status(400).json({ message: "USER NOT FOUND" });
       return;
     }
-  console.log("user not found but still there")
+    console.log("user not found but still there");
     // Compare password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
@@ -83,8 +85,11 @@ const loginUser = async (req: Request, res: Response):Promise<void> => {
         name: user.name,
         email: user.email,
         role: user.role,
+        following: user.following,
+        followers: user.followers,
       },
     });
+    return;
   } catch (error) {
     console.error("Error logging in user:", error);
     res.status(500).json({ message: error });
@@ -435,14 +440,31 @@ const getAllArticles = async (
   next: NextFunction
 ) => {
   try {
-    //   console.log('Fetching all articles');
-    const articles = await Article.find();
-    res.status(200).json(articles);
-    return;
+    console.log("Fetching all articles");
+
+    // Step 1: Fetch articles with user populated (name & email)
+    const articles = await Article.find().populate("user", "name email");
+
+    // Step 2: Format each article
+    const formatted = articles.map((a) => ({
+      id: a.id.toString(),
+      title: a.title,
+      description: a.description,
+      likes: a.likes?.map((id: any) => id.toString()) || [],
+      user: a.user && "_id" in a.user ? a.user._id.toString() : "",
+      name: a.user && "name" in a.user ? a.user.name : "Unknown",
+      email: a.user && "email" in a.user ? a.user.email : "Unknown",
+    }));
+
+    // console.log(formatted);
+
+    res.status(200).json(formatted);
   } catch (error) {
+    console.error("Error fetching articles:", error);
     return next(new CustomError("Internal server error", 500));
   }
 };
+
 const users = async (
   req: AuthenticatedRequest,
   res: Response,
@@ -546,17 +568,17 @@ const notificationController = async (
   }
 };
 
-const notificationRead = async (req: AuthenticatedRequest, res: Response) => {
-  try {
+const notificationRead = async (req: AuthenticatedRequest, res: Response):Promise<void> => {
+  try {console.log("notification read")
     const userInfo = req.user as JwtPayload;
     const userId = userInfo?.id;
     if (!userId) {
       res.status(400).json({ message: "Invalid data" });
       return;
     }
-    console.log(req.params.id, userId);
-    await Notification.findByIdAndUpdate(
-      { _id: req?.params?.id },
+
+    await Notification.updateMany(
+      { recipient: userId, read: false },
       { $set: { read: true } }
     );
     res.json(`made it true`);
@@ -573,21 +595,31 @@ const addMessage = async (req: AuthenticatedRequest, res: Response) => {
     const { sender, receiver, text } = req.body;
 
     if (!sender || !receiver || !text) {
-       res.status(400).json({ message: "Data is missing" });
-       return;
+      res.status(400).json({ message: "Data is missing" });
+      return;
     }
 
     const socketid = connectedUsers.get(receiver as string);
-    
+
     // Save message
     const message = await Message.create({ sender, receiver, text });
+    //notification generated
+    const notification = await Notification.create({
+      recipient: receiver,
+      sender: userId,
+      type: "message",
+      // articleId: article?._id,
+      message: `${userInfo.name || "Someone"} messaged you`,
+    });
 
     // Emit via Socket.IO if receiver is online
     if (socketid) {
       io.to(socketid).emit("receive-message", message);
-      console.log("socket of receiver",socketid)
+      //for notification
+      io.to(socketid).emit("notification", notification);
+      console.log("socket of receiver", socketid);
     }
-    console.log(socketid,"socketid",connectedUsers)
+    console.log(socketid, "emited");
     // Update messageData: remove and unshift in a single update
     // for sender messageData
     await User.findByIdAndUpdate(userId, {
@@ -595,7 +627,6 @@ const addMessage = async (req: AuthenticatedRequest, res: Response) => {
     });
     await User.findByIdAndUpdate(userId, {
       $push: { messageData: { $each: [receiver], $position: 0 } },
-
     });
     //for receiver messageData
     await User.findByIdAndUpdate(receiver, {
@@ -613,7 +644,6 @@ const addMessage = async (req: AuthenticatedRequest, res: Response) => {
     return;
   }
 };
-
 
 const messageById = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -635,12 +665,16 @@ const messageById = async (req: AuthenticatedRequest, res: Response) => {
     res.status(400).json(`internal error`);
   }
 };
-const messageList = async (req: AuthenticatedRequest, res: Response) => {
+const messageList = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
   try {
     const userInfo = req?.user as JwtPayload;
     const user = await User.findById(userInfo?.id);
-    const users:{_id:string,name:string,email:string}[] = await User.find().select('_id name email');
-    const activeUsers: {_id:string,name:string,email:string}[] = [];
+    const users: { _id: string; name: string; email: string }[] =
+      await User.find().select("_id name email");
+    const activeUsers: { _id: string; name: string; email: string }[] = [];
 
     // Add users from messageData[] first
     user?.messageData?.forEach((_id) => {
@@ -650,19 +684,61 @@ const messageList = async (req: AuthenticatedRequest, res: Response) => {
     // console.log(activeUsers,"active")
     // Add remaining users
     users.forEach((u) => {
-      const exists = activeUsers.some((ac) => ac._id.toString() === u._id.toString());
+      const exists = activeUsers.some(
+        (ac) => ac._id.toString() === u._id.toString()
+      );
       if (!exists) activeUsers.push(u);
     });
     // console.log(activeUsers.length,"active all")
 
-     res.status(200).json(activeUsers);
-     return;
+    res.status(200).json(activeUsers);
+    return;
   } catch (error) {
-     res.status(400).json({ message: "Internal error" });
-     return;
+    res.status(400).json({ message: "Internal error" });
+    return;
   }
 };
 
+const followController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    console.warn("follow controller hited");
+    const userInfo = req?.user as JwtPayload;
+    const { authorId } = req?.params;
+    console.log(userInfo.id, authorId);
+    if (userInfo?.id == authorId) {
+      return next(new CustomError("you cant follow yourself"));
+    }
+    const user = await User.findById(userInfo?.id);
+    const isFollowing = user?.following.includes(new Types.ObjectId(authorId));
+    // if already following pulling ids from array
+    if (isFollowing) {
+      await User.findByIdAndUpdate(userInfo?.id, {
+        $pull: { following: authorId },
+      });
+      await User.findByIdAndUpdate(authorId, {
+        $pull: { followers: userInfo?.id },
+      });
+      console.log("id s pulled ");
+    } else {
+      await User.findByIdAndUpdate(userInfo?.id, {
+        $push: { following: authorId },
+      });
+      await User.findByIdAndUpdate(authorId, {
+        $push: { followers: userInfo?.id },
+      });
+      console.log("pushed ids", userInfo.id, authorId);
+    }
+
+    res.status(200).json({ following: !isFollowing });
+    return;
+  } catch (error) {
+    next(error);
+  }
+};
 
 export {
   registerUser,
@@ -681,5 +757,6 @@ export {
   users,
   addMessage,
   messageById,
-  messageList
+  messageList,
+  followController,
 };

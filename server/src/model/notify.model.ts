@@ -7,16 +7,16 @@ interface INotify{
   type:string;
   message:string;
   read:boolean;
-  articleId:mongoose.Types.ObjectId
+  articleId?:mongoose.Types.ObjectId
 }
 const notificationSchema = new mongoose.Schema(
   {
     recipient: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     sender: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    type: { type: String, enum: ["like"], required: true },
+    type: { type: String, enum: ["like","message"], required: true },
     message: String,
     read: { type: Boolean, default: false },
-    articleId: { type: mongoose.Schema.Types.ObjectId, ref: "Article" },
+    articleId: { type: mongoose.Schema.Types.ObjectId, ref: "Article",required:false },
     
   },
   { timestamps: true }

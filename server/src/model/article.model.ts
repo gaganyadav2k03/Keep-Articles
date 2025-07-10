@@ -16,7 +16,7 @@ const articleSchema = new Schema<IArticle>(
   {
     title: { type: String, required: true },
     description: { type: String, required: true },
-    user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    user: { type: Schema.Types.ObjectId, ref: "User" },
     versions: [{ type: Schema.Types.ObjectId, ref: 'ArticleVersion' }],
     likes: [{ type: Schema.Types.ObjectId, ref: "User" }]
   },

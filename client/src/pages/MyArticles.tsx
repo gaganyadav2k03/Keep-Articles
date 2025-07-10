@@ -77,12 +77,17 @@ export default function MyArticles() {
       ) : articles.length === 0 ? (
         <Alert severity="info">No articles found.</Alert>
       ) : (
-        <Grid container spacing={4} justifyContent="center">
+        <Grid container spacing={4}>
           {articles.map((a) => (
-            <Grid item xs={12} sm={6} md={4} key={a.id}>
+            <Grid
+              key={a.id}
+              size={{ xs: 12, sm: 6, md: 4 }}
+              display="flex"
+              alignItems="stretch"
+            >
               <Card
                 sx={{
-                  height: "100%",
+                  flex: 1,
                   display: "flex",
                   flexDirection: "column",
                   borderRadius: 3,
@@ -101,7 +106,7 @@ export default function MyArticles() {
                   sx={{
                     display: "flex",
                     flexDirection: "column",
-                    height: "100%",
+                    flexGrow: 1,
                   }}
                 >
                   {/* Content Area */}
@@ -131,7 +136,6 @@ export default function MyArticles() {
                     alignItems="center"
                   >
                     <Box display="flex" alignItems="center" gap={1}>
-                      {/* View */}
                       <Tooltip title="View">
                         <IconButton
                           onClick={() => navigate(`/articles/${a.id}`)}
@@ -146,7 +150,6 @@ export default function MyArticles() {
                         </IconButton>
                       </Tooltip>
 
-                      {/* Edit/Delete/History only if owner */}
                       {user?.id === a.user && (
                         <>
                           <Tooltip title="Edit">
@@ -179,7 +182,9 @@ export default function MyArticles() {
 
                           <Tooltip title="History">
                             <IconButton
-                              onClick={() => navigate(`/articles/${a.id}/history`)}
+                              onClick={() =>
+                                navigate(`/articles/${a.id}/history`)
+                              }
                               sx={{
                                 "&:hover": {
                                   color: "#6a1b9a",

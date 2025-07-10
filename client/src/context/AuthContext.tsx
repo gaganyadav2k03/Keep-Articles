@@ -15,6 +15,8 @@ interface User {
   name: string;
   email: string;
   role?: string;
+  following:[];
+  followers:[];
 }
 
 // Define context value type
@@ -36,7 +38,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios
+   axios
       .get("/me")
       .then((res) => setUser(res.data))
       .catch(() => setUser(null))

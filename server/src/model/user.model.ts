@@ -17,6 +17,8 @@ interface IUser extends Document {
   role: string;
   articles: mongoose.Types.ObjectId[];
   messageData:mongoose.Types.ObjectId[];
+  following:mongoose.Types.ObjectId[];
+  followers:mongoose.Types.ObjectId[];
   generateAccessToken(): string;
   comparePassword(password: string): Promise<boolean>;
 }
@@ -27,7 +29,9 @@ const UserSchema = new Schema<IUser>({
   password: { type: String, required: true },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
   articles: [{ type: Schema.Types.ObjectId, ref: 'Article' }],
-  messageData:[{type:Schema.Types.ObjectId}]
+  messageData:[{type:Schema.Types.ObjectId,ref:'User'}],
+  following:[{type:Schema.Types.ObjectId,ref:'User'}],
+  followers:[{type:Schema.Types.ObjectId,ref:'User'}],
 });
 
 UserSchema.plugin(toJSONPlugin)
