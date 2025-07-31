@@ -11,6 +11,7 @@ import {
   useTheme,
 } from "@mui/material";
 import axios from "../utils/axios";
+import { colors } from "../assets/colors"; // ✅ import palette
 
 export default function EditArticle() {
   const { id } = useParams();
@@ -77,7 +78,7 @@ export default function EditArticle() {
         mt: 6,
         px: 3,
         py: 4,
-        background: "linear-gradient(145deg, #f5f7fa, #c3cfe2)",
+        background: `linear-gradient(145deg, ${colors.backgroundLight}, ${colors.beige})`,
         boxShadow: "0 8px 30px rgba(0, 0, 0, 0.08)",
         borderRadius: 3,
       }}
@@ -87,7 +88,7 @@ export default function EditArticle() {
         gutterBottom
         sx={{
           fontWeight: 700,
-          color: "#2c3e50",
+          color: colors.sand,
           mb: 3,
           textAlign: "center",
         }}
@@ -106,7 +107,7 @@ export default function EditArticle() {
           backgroundColor: "#fff",
           borderRadius: 1,
           "& .MuiOutlinedInput-root:hover": {
-            "& fieldset": { borderColor: "#1976d2" },
+            "& fieldset": { borderColor: colors.sand },
           },
         }}
       />
@@ -120,11 +121,12 @@ export default function EditArticle() {
           sx={{
             textTransform: "none",
             fontWeight: 500,
-            borderColor: "#1976d2",
-            color: "#1976d2",
+            borderColor: colors.sand,
+            color: colors.sand,
             "&:hover": {
-              backgroundColor: "#e3f2fd",
-              borderColor: "#1565c0",
+              backgroundColor: colors.backgroundLight,
+              borderColor: colors.blush,
+              color: colors.blush,
             },
           }}
         >
@@ -145,7 +147,7 @@ export default function EditArticle() {
           backgroundColor: "#fff",
           borderRadius: 1,
           "& .MuiOutlinedInput-root:hover": {
-            "& fieldset": { borderColor: "#1976d2" },
+            "& fieldset": { borderColor: colors.sand },
           },
         }}
       />
@@ -160,10 +162,10 @@ export default function EditArticle() {
             fontWeight: "bold",
             textTransform: "none",
             borderRadius: 2,
-            backgroundColor: "#1976d2",
+            backgroundColor: colors.sand,
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
             "&:hover": {
-              backgroundColor: "#1565c0",
+              // backgroundColor: colors.blush,
             },
           }}
         >

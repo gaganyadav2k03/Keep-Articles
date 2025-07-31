@@ -21,20 +21,35 @@ import HomeIcon from "@mui/icons-material/Home";
 import ArticleIcon from "@mui/icons-material/Article";
 import LoginIcon from "@mui/icons-material/Login";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
-
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
 import axios from "../utils/axios";
 import { useAuth } from "../context/AuthContext";
 import NotificationDrawer from "../components/NotificationBell";
+import { colors } from "../assets/colors"; // ✅ imported color variables
 
 const Navbar = ({ onShowUsers }: { onShowUsers: () => void }) => {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [open, setOpen] = useState(false);
+  const [hasUnread, setHasUnread] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  useEffect(() => {
+    const fetchUnreadStatus = async () => {
+      if (!user) return;
+      try {
+        const res = await axios.get("/user/notification-status");
+        setHasUnread(res.data.hasUnread);
+      } catch (err) {
+        console.error("Failed to fetch unread status", err);
+      }
+    };
+
+    fetchUnreadStatus();
+  }, [user]);
 
   const handleLogout = async () => {
     localStorage.removeItem("token");
@@ -54,13 +69,19 @@ const Navbar = ({ onShowUsers }: { onShowUsers: () => void }) => {
               onClick={() => setDrawerOpen(true)}
               color={isMobile ? "default" : "inherit"}
             >
-              {/* <Badge color="error" variant="standard"> */}
-                <NotificationsIcon />
-              {/* </Badge> */}
+              <Badge
+                color="error"
+                variant="dot"
+                invisible={!hasUnread}
+                overlap="circular"
+              >
+                <NotificationsIcon sx={{color:"black"}}/>
+              </Badge>
             </IconButton>
             <NotificationDrawer
               open={drawerOpen}
               onClose={() => setDrawerOpen(false)}
+              setHasUnread={setHasUnread}
             />
             <Button
               onClick={onShowUsers}
@@ -75,7 +96,7 @@ const Navbar = ({ onShowUsers }: { onShowUsers: () => void }) => {
               startIcon={<DashboardIcon />}
               fullWidth={isMobile}
             />
-             <Button
+            <Button
               onClick={handleLogout}
               sx={isMobile ? mobileBtnStyle : navBtnStyle}
               startIcon={<LogoutIcon />}
@@ -88,13 +109,19 @@ const Navbar = ({ onShowUsers }: { onShowUsers: () => void }) => {
               onClick={() => setDrawerOpen(true)}
               color={isMobile ? "default" : "inherit"}
             >
-              <Badge color="error" variant="standard">
-                <NotificationsIcon />
+              <Badge
+                color="error"
+                variant="dot"
+                invisible={!hasUnread}
+                overlap="circular"
+              >
+                <NotificationsIcon sx={{color:"black"}}/>
               </Badge>
             </IconButton>
             <NotificationDrawer
               open={drawerOpen}
               onClose={() => setDrawerOpen(false)}
+              setHasUnread={setHasUnread}
             />
             <Button
               component={Link}
@@ -151,11 +178,11 @@ const Navbar = ({ onShowUsers }: { onShowUsers: () => void }) => {
         position="sticky"
         sx={{
           height: "70px",
-          background: "linear-gradient(135deg, rgb(71, 77, 78), rgb(86, 88, 90))",
+          background: `${colors.blush}`,
           boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
           backdropFilter: "blur(6px)",
           WebkitBackdropFilter: "blur(6px)",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+          borderBottom: `1px solid ${colors.beige}`,
           transition: "background 0.3s ease",
         }}
       >
@@ -167,16 +194,14 @@ const Navbar = ({ onShowUsers }: { onShowUsers: () => void }) => {
               textDecoration: "none",
               fontWeight: 600,
               letterSpacing: 1.2,
-              "&:hover": { color: "#e0f7fa" },
+              "&:hover": { color: colors.backgroundLight },
             }}
           >
             Keep Articles
           </Typography>
 
-          {/* Desktop Nav */}
           {!isMobile && <Box>{NavLinks}</Box>}
 
-          {/* Mobile Hamburger */}
           {isMobile && (
             <IconButton onClick={toggleDrawer} sx={{ color: "#fff" }}>
               <MenuIcon />
@@ -185,7 +210,6 @@ const Navbar = ({ onShowUsers }: { onShowUsers: () => void }) => {
         </Toolbar>
       </AppBar>
 
-      {/* Mobile Drawer */}
       <Drawer anchor="right" open={open} onClose={toggleDrawer}>
         <Box sx={{ width: 250, p: 2 }}>
           <Box display="flex" justifyContent="space-between" alignItems="center">
@@ -194,7 +218,7 @@ const Navbar = ({ onShowUsers }: { onShowUsers: () => void }) => {
               <CloseIcon />
             </IconButton>
           </Box>
-          <Divider sx={{ my: 1 }} />
+          <Divider sx={{ my: 1, backgroundColor: colors.sand }} />
           <Box display="flex" flexDirection="column" gap={1}>
             {NavLinks}
           </Box>
@@ -206,18 +230,18 @@ const Navbar = ({ onShowUsers }: { onShowUsers: () => void }) => {
 
 export default Navbar;
 
-
+// ✅ Updated to use color variables
 const navBtnStyle = {
-  color: "#fff",
+  color: "black",
   mx: 1,
   fontWeight: 500,
   borderRadius: 2,
   textTransform: "none",
   transition: "all 0.25s ease-in-out",
   "&:hover": {
-    color: "#e0f7fa",
+    // color: colors.backgroundLight,
     backgroundColor: "rgba(255, 255, 255, 0.1)",
-    transform: "translateY(-2px)",
+    // transform: "translateY(-2px)",
   },
 };
 
@@ -230,6 +254,6 @@ const mobileBtnStyle = {
   px: 2,
   py: 1.2,
   "&:hover": {
-    backgroundColor: "#f5f5f5",
+    backgroundColor: colors.beige,
   },
 };

@@ -15,6 +15,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import axios from "../utils/axios";
 import { getSocket } from "../utils/socket";
+import { useNavigate } from "react-router-dom";
 
 interface Message {
   _id?: string;
@@ -30,6 +31,14 @@ interface ChatUser {
   email: string;
 }
 
+const formatDate = (timestamp: string) =>
+  new Date(timestamp).toLocaleDateString(undefined, {
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+
 export default function MessagePage() {
   const { user } = useAuth();
   const [selectedUser, setSelectedUser] = useState<ChatUser | null>(null);
@@ -39,8 +48,18 @@ export default function MessagePage() {
   const [loading, setLoading] = useState(false);
   const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
-
+  const [isTyping, setIsTyping] = useState(false);
+  // import { Navigate } from "react-router-dom";
   const socketRef = useRef(getSocket());
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  // Scroll to bottom
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(scrollToBottom, [messages]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const socket = socketRef.current;
@@ -50,23 +69,30 @@ export default function MessagePage() {
       setOnlineUserIds(ids);
     });
 
+    socket.on("userTyping", (data: { from: string; to: string }) => {
+      // ✅ Only show typing if YOU are the target and THEY are the sender
+      if (data.from === selectedUser?.id && data.to === user?.id) {
+        setIsTyping(true);
+        setTimeout(() => setIsTyping(false), 1500);
+      }
+    });
+
     return () => {
       socket.off("online-users");
+      socket.off("userTyping");
     };
-  }, []);
+  }, [selectedUser, user?.id]);
 
   useEffect(() => {
     if (!user?.id) return;
 
-    // Fetch chat users
     axios.get("/user/messageList").then((res) => {
       const filtered = res.data.filter((u: ChatUser) => u.id !== user.id);
       setUsers(filtered);
     });
 
-    // Fetch unread counts
     axios.get("/user/unreadCounts").then((res) => {
-      setUnreadCounts(res.data); // Format: { userId: count }
+      setUnreadCounts(res.data);
     });
   }, [user]);
 
@@ -74,14 +100,12 @@ export default function MessagePage() {
     if (!selectedUser) return;
     setLoading(true);
 
-    // Fetch messages
     axios
-      .get(`/user/messages/${selectedUser.id}`)
+      .get(`/user/messages/${selectedUser.id}?limit=50&skip=0`)
       .then((res) => setMessages(res.data))
       .catch(() => setMessages([]))
       .finally(() => setLoading(false));
 
-    // Mark as read
     axios.post(`/user/markAsRead/${selectedUser.id}`).then(() => {
       setUnreadCounts((prev) => {
         const updated = { ...prev };
@@ -101,7 +125,6 @@ export default function MessagePage() {
       ) {
         setMessages((prev) => [...prev, msg]);
       } else {
-        // Update unread count
         setUnreadCounts((prev) => ({
           ...prev,
           [msg.sender]: (prev[msg.sender] || 0) + 1,
@@ -133,7 +156,7 @@ export default function MessagePage() {
       text,
     };
 
-    setMessages((prev) => [...prev, newMessage]);
+    setMessages((prev) => [...prev, { ...newMessage, createdAt: Date() }]);
     setText("");
 
     setUsers((prev) => {
@@ -146,11 +169,20 @@ export default function MessagePage() {
 
     try {
       await axios.post("/user/messages", newMessage);
-      // socketRef.current.emit("send-message", newMessage);
     } catch (error) {
       console.error("Failed to send message", error);
     }
   };
+
+  const groupedMessages = messages.reduce(
+    (acc: Record<string, Message[]>, msg) => {
+      const date = formatDate(msg.createdAt!);
+      if (!acc[date]) acc[date] = [];
+      acc[date].push(msg);
+      return acc;
+    },
+    {}
+  );
 
   return (
     <Box
@@ -186,16 +218,13 @@ export default function MessagePage() {
               <ListItemButton
                 key={u.id}
                 selected={selectedUser?.id === u.id}
-                onClick={() => setSelectedUser(u)}
+                // onClick={() => setSelectedUser(u)}
                 sx={{
                   mb: 1,
                   borderRadius: 2,
-                  transition: "all 0.2s ease",
                   backgroundColor:
                     selectedUser?.id === u.id ? "#e3f2fd" : "transparent",
-                  "&:hover": {
-                    backgroundColor: "#f1f1f1",
-                  },
+                  "&:hover": { backgroundColor: "#f1f1f1" },
                 }}
               >
                 <Box sx={{ position: "relative", mr: 2 }}>
@@ -204,6 +233,7 @@ export default function MessagePage() {
                       background:
                         "linear-gradient(135deg, rgb(95, 99, 100), rgb(85, 87, 88))",
                     }}
+                    onClick={() => navigate(`/user/${u.id}`)}
                   >
                     {u.name[0]}
                   </Avatar>
@@ -225,6 +255,7 @@ export default function MessagePage() {
                 <ListItemText
                   primary={
                     <Box
+                      onClick={() => setSelectedUser(u)}
                       sx={{
                         display: "flex",
                         justifyContent: "space-between",
@@ -267,7 +298,15 @@ export default function MessagePage() {
           bgcolor: "#f9fafc",
         }}
       >
-        <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
+        <Typography
+          variant="h6"
+          onClick={() => {
+            if (selectedUser?.id) {
+              navigate(`/user/${selectedUser.id}`);
+            }
+          }}
+          sx={{ mb: 1, fontWeight: 600 }}
+        >
           {selectedUser
             ? `Chat with ${selectedUser.name}`
             : "Select a user to start chat"}
@@ -275,7 +314,6 @@ export default function MessagePage() {
 
         <Divider sx={{ mb: 2 }} />
 
-        {/* Chat Messages */}
         <Box
           sx={{
             flex: 1,
@@ -294,38 +332,80 @@ export default function MessagePage() {
               No messages yet.
             </Typography>
           ) : (
-            messages.map((msg, i) => (
-              <Box
-                key={i}
-                sx={{
-                  alignSelf:
-                    msg.sender === user?.id ? "flex-end" : "flex-start",
-                  bgcolor: msg.sender === user?.id ? "#d0f0c0" : "#ffffff",
-                  px: 2,
-                  py: 1,
-                  borderRadius: 2,
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                  maxWidth: "75%",
-                  transition: "all 0.2s ease",
-                }}
-              >
-                <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
-                  {msg.text}
+            Object.entries(groupedMessages).map(([date, msgs]) => (
+              <Box key={date}>
+                <Typography
+                  variant="caption"
+                  align="center"
+                  display="block"
+                  sx={{ my: 1, opacity: 0.6 }}
+                >
+                  {date}
                 </Typography>
-                {msg.createdAt && (
-                  <Typography
-                    variant="caption"
-                    sx={{ opacity: 0.6, mt: 0.5, display: "block" }}
-                  >
-                    {new Date(msg.createdAt).toLocaleTimeString()}
-                  </Typography>
-                )}
+                {msgs.map((msg, i) => {
+                  const isSender = msg.sender === user?.id;
+
+                  return (
+                    <Box
+                      key={i}
+                      sx={{
+                        display: "flex",
+                        justifyContent: isSender ? "flex-end" : "flex-start",
+                        mb: 0.5,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          bgcolor: isSender ? "#d0f0c0" : "#fff",
+                          color: "#333",
+                          px: 2,
+                          py: 1,
+                          borderRadius: 2,
+                          maxWidth: "70%",
+                          boxShadow: "0 1px 6px rgba(0,0,0,0.12)",
+                          borderTopRightRadius: isSender ? 0 : 12,
+                          borderTopLeftRadius: isSender ? 12 : 0,
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{ wordBreak: "break-word" }}
+                        >
+                          {msg.text}
+                        </Typography>
+                        {msg.createdAt && (
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              opacity: 0.6,
+                              mt: 0.5,
+                              fontSize: "0.7rem",
+                              textAlign: "right",
+                              display: "block",
+                            }}
+                          >
+                            {new Date(msg.createdAt).toLocaleTimeString()}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  );
+                })}
               </Box>
             ))
           )}
+          <div ref={messagesEndRef} />
         </Box>
 
-        {/* Message Input */}
+        {isTyping && (
+          <Typography
+            variant="body2"
+            sx={{ fontStyle: "italic", color: "#999", mb: 1 }}
+          >
+            {selectedUser?.name} is typing...
+          </Typography>
+        )}
+
         {selectedUser && (
           <Box
             sx={{
@@ -343,7 +423,11 @@ export default function MessagePage() {
               fullWidth
               placeholder="Type your message..."
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={(e) => {
+                setText(e.target.value);
+                socketRef.current.emit("typing", { to: selectedUser?.id });
+                // console.warn("typing emited")
+              }}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
               size="small"
               sx={{

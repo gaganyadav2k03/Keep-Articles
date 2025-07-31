@@ -12,11 +12,9 @@ import { Notification } from "../model/notify.model";
 import { Message } from "../model/message.model";
 import mongoose from "mongoose";
 
-
-
-const getUnreadCounts = async (req:AuthenticatedRequest, res:Response) => {
-  const currentUser = req.user as JwtPayload
-  const currentUserId=currentUser?.id
+const getUnreadCounts = async (req: AuthenticatedRequest, res: Response) => {
+  const currentUser = req.user as JwtPayload;
+  const currentUserId = currentUser?.id;
 
   try {
     const unread = await Message.aggregate([
@@ -45,9 +43,9 @@ const getUnreadCounts = async (req:AuthenticatedRequest, res:Response) => {
   }
 };
 
-const markMessagesAsRead = async (req:AuthenticatedRequest ,res:Response) => {
-   const currentUser = req.user as JwtPayload
-  const currentUserId=currentUser?.id
+const markMessagesAsRead = async (req: AuthenticatedRequest, res: Response) => {
+  const currentUser = req.user as JwtPayload;
+  const currentUserId = currentUser?.id;
   const fromUserId = req?.params?.userId;
 
   try {
@@ -59,14 +57,56 @@ const markMessagesAsRead = async (req:AuthenticatedRequest ,res:Response) => {
       },
       { $set: { isRead: true } }
     );
-    res.status(200).json({message:"marked"});
+    res.status(200).json({ message: "marked" });
   } catch (err) {
     res.status(500).json({ message: "Failed to mark messages as read" });
   }
 };
 
+const notificationUnRead = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try { console.log("unread noti hitted")
+    const user = req.user as JwtPayload;
+    const count = await Notification.countDocuments({
+      recipient: user?.id,
+      read: false,
+    });
+    console.log("count",count)
+    res.json({ hasUnread: count > 0 });
+    return;
+  } catch (error) {
+    next(error);
+  }
+};
+// DELETE /user/messages/invalid
+const isInvalidDate = (date: any) => {
+  return !(date instanceof Date) || isNaN(date.getTime());
+};
 
-export {
-  getUnreadCounts,
-  markMessagesAsRead
-}
+const deleteInvalidMessages = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // Find all messages with invalid or missing createdAt
+    const allMessages = await Message.find({});
+    const invalidMessages = allMessages.filter((msg) => isInvalidDate(msg.createdAt));
+
+    const invalidIds = invalidMessages.map((msg) => msg._id);
+
+    if (invalidIds.length > 0) {
+      await Message.deleteMany({ _id: { $in: invalidIds } });
+    }
+
+    res.status(200).json({
+      message: "Deleted invalid messages",
+      count: invalidIds.length,
+    });
+  } catch (error) {
+    console.error("Error deleting invalid messages:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
+export { getUnreadCounts, markMessagesAsRead,notificationUnRead,deleteInvalidMessages };

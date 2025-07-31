@@ -6,10 +6,11 @@ import {
   CardContent,
   CircularProgress,
   Alert,
-  Box
+  Box,
 } from "@mui/material";
 import { useParams } from "react-router-dom";
 import axios from "../utils/axios";
+import { colors } from "../assets/colors"; // ✅ Import centralized colors
 
 interface Version {
   _id: string;
@@ -66,7 +67,7 @@ export default function ArticleHistory() {
           fontWeight: 600,
           textAlign: "center",
           mb: 3,
-          color: "#00796b",
+          color: colors.sand, // ✅ replaced #00796b
         }}
       >
         📜 Article History
@@ -78,7 +79,7 @@ export default function ArticleHistory() {
           sx={{
             my: 2,
             borderRadius: 3,
-            background: "linear-gradient(135deg, #f0f0f0, #ffffff)",
+            background: `linear-gradient(135deg, ${colors.beige}, #ffffff)`, // ✅ replaced raw colors
             boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
             transition: "transform 0.3s ease, box-shadow 0.3s ease",
             animation: `fadeIn 0.5s ease forwards`,
@@ -93,7 +94,7 @@ export default function ArticleHistory() {
           <CardContent>
             <Typography
               variant="caption"
-              sx={{ fontStyle: "italic", color: "#555" }}
+              sx={{ fontStyle: "italic", color: colors.sand }} // ✅ replaced #555
             >
               🕒 {new Date(v.updatedAt).toLocaleString()}
             </Typography>
@@ -101,7 +102,7 @@ export default function ArticleHistory() {
               variant="body1"
               sx={{
                 mt: 1,
-                color: "#333",
+                color: colors.blush, // ✅ replaced #333
                 whiteSpace: "pre-wrap",
                 fontSize: "0.95rem",
               }}

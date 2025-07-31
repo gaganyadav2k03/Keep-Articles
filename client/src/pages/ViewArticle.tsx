@@ -1,122 +1,120 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import axios from "../utils/axios";
 import {
   Typography,
-  Container,
+  Modal,
   CircularProgress,
   Alert,
   Box,
+  IconButton,
+  Link,
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import axios from "../utils/axios";
+// import { colors } from "../assets/colors"; // 🎨 use your palette
 
 interface Article {
   id: string;
   title: string;
   description: string;
+  user: { id: string; name: string };
   createdAt: string;
   updatedAt: string;
 }
 
-const ViewArticle = () => {
-  const { id } = useParams();
+interface ViewArticleProps {
+  articleId: string | null;
+  open: boolean;
+  onClose: () => void;
+}
+
+const ViewArticle = ({ articleId, open, onClose }: ViewArticleProps) => {
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!articleId) return;
+    setLoading(true);
     axios
-      .get(`/user/article/${id}`)
+      .get(`/user/article/${articleId}`)
       .then((res) => setArticle(res.data))
-      .catch(console.error)
+      .catch(() => setArticle(null))
       .finally(() => setLoading(false));
-  }, [id]);
-
-  if (loading)
-    return (
-      <Box display="flex" justifyContent="center" mt={5}>
-        <CircularProgress />
-      </Box>
-    );
-
-  if (!article)
-    return (
-      <Box mt={5}>
-        <Alert severity="error">❌ Article not found</Alert>
-      </Box>
-    );
+  }, [articleId]);
 
   return (
-    <Container
-      maxWidth="md"
-      sx={{
-        mt: 6,
-        px: { xs: 2, sm: 4 },
-        py: 4,
-        borderRadius: 4,
-        background: "linear-gradient(to right, #fdfbfb, #ebedee)",
-        boxShadow: "0 8px 30px rgba(0, 0, 0, 0.1)",
-      }}
-    >
-      <Typography
-        variant="h4"
+    <Modal open={open} onClose={onClose}>
+      <Box
         sx={{
-          fontWeight: "bold",
-          color: "#2c3e50",
-          mb: 2,
-          fontSize: { xs: "1.8rem", sm: "2.2rem" },
-          textAlign: { xs: "center", sm: "left" },
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: { xs: "95%", sm: "80%", md: "60%", lg: "50%" },
+          bgcolor: "white",
+          boxShadow: 24,
+          borderRadius: 4,
+          p: 4,
+          maxHeight: "90vh",
+          overflowY: "auto",
         }}
       >
-        📖 {article.title}
-      </Typography>
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={2}
+        >
+          <Typography variant="h5" fontWeight="bold" color="text.primary">
+            📖 {article?.title || "Article"}
+          </Typography>
+          <IconButton onClick={onClose}>
+            <CloseIcon />
+          </IconButton>
+        </Box>
 
-      <Typography
-        variant="subtitle2"
-        sx={{
-          color: "text.secondary",
-          fontStyle: "italic",
-          mb: 0.5,
-          textAlign: { xs: "center", sm: "left" },
-        }}
-      >
-        🕓 Updated on:{" "}
-        {new Date(article.updatedAt).toLocaleDateString(undefined, {
-          weekday: "short",
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })}
-      </Typography>
+        {loading ? (
+          <Box display="flex" justifyContent="center" mt={5}>
+            <CircularProgress />
+          </Box>
+        ) : !article ? (
+          <Alert severity="error">❌ Article not found</Alert>
+        ) : (
+          <>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              🕓 Updated: {new Date(article.updatedAt).toLocaleDateString()}<br />
+              🗓️ Created: {new Date(article.createdAt).toLocaleDateString()}
+            </Typography>
 
-      <Typography
-        variant="subtitle2"
-        sx={{
-          color: "text.secondary",
-          fontStyle: "italic",
-          mb: 3,
-          textAlign: { xs: "center", sm: "left" },
-        }}
-      >
-        🗓️ Created on:{" "}
-        {new Date(article.createdAt).toLocaleDateString(undefined, {
-          weekday: "short",
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })}
-      </Typography>
+            <Typography
+              variant="body1"
+              sx={{
+                mt: 2,
+                whiteSpace: "pre-line",
+                lineHeight: 1.8,
+                color: "#333",
+              }}
+            >
+              {article.description}
+            </Typography>
 
-      <Typography
-        variant="body1"
-        sx={{
-          fontSize: { xs: "1rem", sm: "1.1rem" },
-          lineHeight: 1.8,
-          color: "#34495e",
-          whiteSpace: "pre-line",
-        }}
-      >
-        {article.description}
-      </Typography>
-    </Container>
+            <Link
+              href={`/user/${article.user.id}`}
+              underline="hover"
+              sx={{
+                display: "inline-block",
+                pt: 3,
+                cursor: "pointer",
+                color: "#1976d2",
+                fontWeight: "bold",
+                fontSize: "1.1rem",
+              }}
+            >
+              @{article.user.name}
+            </Link>
+          </>
+        )}
+      </Box>
+    </Modal>
   );
 };
 

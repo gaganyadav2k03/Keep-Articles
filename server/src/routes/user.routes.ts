@@ -16,11 +16,14 @@ import {
   messageList,
   profile,
   followController,
+  userProfile,
   // messageRead
 } from "../controllers/user.controller";
 import {
+  deleteInvalidMessages,
   getUnreadCounts,
   markMessagesAsRead,
+  notificationUnRead,
 } from "../controllers/message.controller";
 import { Router } from "express";
 import { verifyAccessToken } from "../middleware/verifyAccessToken";
@@ -45,14 +48,17 @@ router.get("/version/:id", verifyAccessToken, listOlderVersions);
 router.post("/likes/:id", verifyAccessToken, likesController);
 router.get("/notifications", verifyAccessToken, notificationController);
 router.put("/notificationsRead", verifyAccessToken, notificationRead);
+router.get('/notification-status',verifyAccessToken,notificationUnRead)
 router.post("/messages", verifyAccessToken, addMessage);
 router.get("/messages/:id", verifyAccessToken, messageById);
 router.get("/messageList", verifyAccessToken, messageList);
 router.post("/follow/:authorId", verifyAccessToken, followController);
 router.get("/unreadCounts", verifyAccessToken, getUnreadCounts);
 router.post("/markAsRead/:userId", verifyAccessToken, markMessagesAsRead);
+router.get("/profile/:id", verifyAccessToken, userProfile);
 // router.put('/messageRead',verifyAccessToken,messageRead)
 //public routes
 router.get("/all-articles", getAllArticles);
+router.get("/deleteInvalidMessages", deleteInvalidMessages);
 
 export default router;

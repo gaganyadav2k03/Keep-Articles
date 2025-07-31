@@ -14,6 +14,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { AxiosError } from "axios";
 import axios from "../utils/axios";
+import { colors } from "../assets/colors"; // ✅ Color palette
 
 export default function CreateArticle() {
   const [expanded, setExpanded] = useState(false);
@@ -69,7 +70,7 @@ export default function CreateArticle() {
           py: 3,
           borderRadius: 4,
           transition: "all 0.3s ease",
-          background: "linear-gradient(135deg, rgb(158, 164, 165), rgb(174, 180, 183))",
+          background: ` ${colors.backgroundLight}`,
           boxShadow: "0 8px 30px rgba(0, 0, 0, 0.1)",
           "&:hover": { cursor: "text" },
         }}
@@ -86,7 +87,8 @@ export default function CreateArticle() {
             sx={{
               fontSize: "1.1rem",
               fontWeight: 500,
-              backgroundColor: "transparent",
+              
+              // backgroundColor: "transparent",
             }}
             onFocus={() => setExpanded(true)}
           />
@@ -98,7 +100,7 @@ export default function CreateArticle() {
               variant={isMobile ? "h6" : "h5"}
               sx={{
                 fontWeight: 700,
-                color: "#2c3e50",
+                // color: colors.sand,
                 textAlign: "center",
                 letterSpacing: 1,
               }}
@@ -140,21 +142,20 @@ export default function CreateArticle() {
               }}
             />
 
-            {/* Generate description transparent text-button */}
+            {/* ✨ Generate button */}
             <Button
               onClick={generateDescription}
               disabled={generating}
               sx={{
                 alignSelf: "flex-end",
                 textTransform: "none",
-                color: "rgb(13, 150, 241)",
+                color: "",
                 fontWeight: "bold",
                 fontSize: "0.95rem",
                 background: "transparent",
                 boxShadow: "none",
                 "&:hover": {
-                  background: "linear-gradient(135deg,rgb(117, 175, 213),rgb(104, 178, 203))",
-                  // boxShadow: "0 6px 16px rgba(33, 203, 243, 0.6)",
+                  // background: colors.beige,
                   textDecoration: "none",
                 },
               }}
@@ -176,14 +177,14 @@ export default function CreateArticle() {
                   fontWeight: 600,
                   textTransform: "none",
                   borderRadius: "50px",
-                  background: "linear-gradient(135deg,rgb(138, 149, 157), #21cbf3)",
-                  boxShadow: "0 4px 14px rgba(33, 203, 243, 0.4)",
+                  // background: `linear-gradient(135deg, ${colors.sand}, ${colors.blush})`,
+                  // boxShadow: "0 4px 14px rgba(33, 203, 243, 0.4)",
                   px: 5,
                   py: 1.5,
                   width: isMobile ? "100%" : "auto",
                   "&:hover": {
-                    background: "linear-gradient(135deg,rgb(53, 56, 58),rgb(104, 178, 203))",
-                    boxShadow: "0 6px 16px rgba(33, 203, 243, 0.6)",
+                    // background: `linear-gradient(135deg, ${colors.blush}, ${colors.sand})`,
+                    // boxShadow: "0 6px 16px rgba(33, 203, 243, 0.6)",
                   },
                 }}
               >

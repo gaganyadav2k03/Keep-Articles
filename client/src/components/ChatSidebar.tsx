@@ -13,6 +13,7 @@ import {
 import { useEffect, useState } from "react";
 import axios from "../utils/axios";
 import { useAuth } from "../context/AuthContext";
+import { colors } from "../assets/colors"; // ✅ import your palette
 
 interface ChatUser {
   id: string;
@@ -56,8 +57,9 @@ export default function ChatSidebar({ open, onClose, onSelectUser }: Props) {
         sx: {
           top: "140px",
           height: "calc(100vh - 140px)",
-          borderLeft: "1px solid #e0e0e0",
+          borderLeft: `1px solid ${colors.sand}`, // 🟠 updated
           boxShadow: 3,
+          backgroundColor: colors.backgroundLight, // 🟠 optional
         },
       }}
     >
@@ -65,9 +67,8 @@ export default function ChatSidebar({ open, onClose, onSelectUser }: Props) {
         <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
           💬 Message Users
         </Typography>
-
-        <Divider sx={{ mb: 2 }} />
-
+        <Divider sx={{ mb: 2, backgroundColor: colors.sand }} />{" "}
+        {/* 🟠 optional color tint */}
         {loading ? (
           <Box textAlign="center" mt={4}>
             <CircularProgress size={30} />
@@ -88,18 +89,29 @@ export default function ChatSidebar({ open, onClose, onSelectUser }: Props) {
                   py: 1,
                   transition: "all 0.2s ease",
                   "&:hover": {
-                    backgroundColor: "#f5f5f5",
+                    backgroundColor: colors.beige, // 🟠 updated hover color
                   },
                 }}
               >
-                <Avatar sx={{ width: 32, height: 32, mr: 2 }}>
+                <Avatar
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    mr: 2,
+                    bgcolor: colors.sand, // 🟠 optional avatar bg
+                    color: "#fff",
+                  }}
+                >
                   {u.name.charAt(0).toUpperCase()}
                 </Avatar>
                 <ListItemText
                   primary={u.name}
                   secondary={u.email}
                   primaryTypographyProps={{ fontWeight: 500 }}
-                  secondaryTypographyProps={{ fontSize: "0.8rem", color: "text.secondary" }}
+                  secondaryTypographyProps={{
+                    fontSize: "0.8rem",
+                    color: colors.blush, // 🟠 optional for text emphasis
+                  }}
                 />
               </ListItemButton>
             ))}

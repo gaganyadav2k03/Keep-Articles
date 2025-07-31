@@ -9,10 +9,11 @@ import {
   IconButton,
   CircularProgress,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import axios from "../utils/axios";
+import { colors } from "../assets/colors"; // ✅ Import centralized colors
 
 type Props = {
   open: boolean;
@@ -50,7 +51,7 @@ export default function UserSideList({ open, onClose }: Props) {
       PaperProps={{
         sx: {
           width: isMobile ? "90%" : 320,
-          background: "linear-gradient(145deg, #e0f7fa, #ffffff)",
+          background: `linear-gradient(145deg, ${colors.backgroundLight}, #ffffff)`, // ✅ updated
           backdropFilter: "blur(12px)",
           WebkitBackdropFilter: "blur(12px)",
           boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
@@ -64,17 +65,13 @@ export default function UserSideList({ open, onClose }: Props) {
     >
       <Box sx={{ p: 3 }}>
         {/* 🧠 Header */}
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-        >
+        <Box display="flex" justifyContent="space-between" alignItems="center">
           <Typography
             variant="h6"
             sx={{
               fontWeight: 600,
               letterSpacing: 1,
-              color: "#006064",
+              color: colors.sand, // ✅ updated
             }}
           >
             🌍 All Users
@@ -84,7 +81,7 @@ export default function UserSideList({ open, onClose }: Props) {
             sx={{
               color: "#333",
               transition: "transform 0.3s ease",
-              "&:hover": { transform: "rotate(90deg)", color: "#d32f2f" },
+              "&:hover": { transform: "rotate(90deg)", color: colors.blush }, // ✅ updated
             }}
           >
             <CloseIcon />
@@ -105,7 +102,7 @@ export default function UserSideList({ open, onClose }: Props) {
               sx={{
                 mb: 2,
                 borderRadius: 3,
-                background: "linear-gradient(135deg, #f0f0f0, #ffffff)",
+                background: `linear-gradient(135deg, ${colors.beige}, #ffffff)`, // ✅ updated
                 boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
                 transition: "transform 0.3s, box-shadow 0.3s",
                 animation: `fadeIn 0.4s ease forwards`,

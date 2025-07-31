@@ -10,13 +10,15 @@ import { CustomError } from "../utils/customError";
 import { io, connectedUsers } from "../../server";
 import { Notification } from "../model/notify.model";
 import { Message } from "../model/message.model";
+import { ar } from "@faker-js/faker/.";
 
 const registerUser = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  try { console.warn("hello")
+  try {
+    console.warn("hello");
     const { name, email, password, role }: IUser = req.body;
 
     if (!name || !email || !password) {
@@ -384,15 +386,47 @@ export const articleById = async (
     //     throw new Error('User not authenticated');
     // }
     const articleId = req.params.id;
-    console.log(articleId, "from articleById");
-    const article = await Article.findById(articleId);
+    // console.log(articleId, "from articleById");
+    const article = await Article.findById(articleId).populate(
+      "user",
+      "name _id"
+    );
     if (!article) {
       return next(new CustomError("Article not found", 404));
     }
+    console.log(article);
     res.status(200).json(article);
     return;
   } catch (error) {
     return next(new CustomError("Internal server error", 500));
+  }
+};
+// user profile by id
+const userProfile = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const userId = req.params.id;
+
+    const user = await User.findById(userId)
+      .select("name _id createdAt") // Select only required user fields
+      .populate({
+        path: "articles",
+        select: "_id title description createdAt", // Select only required article fields
+      });
+
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    res.status(200).json(user);
+    return;
+  } catch (error) {
+    console.error("Error in userProfile:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -568,8 +602,12 @@ const notificationController = async (
   }
 };
 
-const notificationRead = async (req: AuthenticatedRequest, res: Response):Promise<void> => {
-  try {console.log("notification read")
+const notificationRead = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    console.log("notification read");
     const userInfo = req.user as JwtPayload;
     const userId = userInfo?.id;
     if (!userId) {
@@ -604,19 +642,20 @@ const addMessage = async (req: AuthenticatedRequest, res: Response) => {
     // Save message
     const message = await Message.create({ sender, receiver, text });
     //notification generated
-    const notification = await Notification.create({
+    if(!socketid){
+     await Notification.create({
       recipient: receiver,
       sender: userId,
       type: "message",
       // articleId: article?._id,
       message: `${userInfo.name || "Someone"} messaged you`,
-    });
+    });}
 
     // Emit via Socket.IO if receiver is online
     if (socketid) {
       io.to(socketid).emit("receive-message", message);
       //for notification
-      io.to(socketid).emit("notification", notification);
+      // io.to(socketid).emit("notification", notification);
       console.log("socket of receiver", socketid);
     }
     console.log(socketid, "emited");
@@ -645,26 +684,35 @@ const addMessage = async (req: AuthenticatedRequest, res: Response) => {
   }
 };
 
-const messageById = async (req: AuthenticatedRequest, res: Response) => {
+const messageById = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
   try {
     const userInfo = req.user as JwtPayload;
     const receiver = userInfo?.id;
     const sender = req?.params?.id;
-    // console.log("from all messages ", receiver);
+
+    const { limit = 50, skip = 0 } = req.query;
+
     const messages = await Message.find({
       $or: [
         { receiver: receiver, sender: sender },
         { receiver: sender, sender: receiver },
       ],
-    });
-    // console.log("messages are here", messages);
-    res.status(200).json(messages);
+    })
+      .sort({ createdAt: 1 }) // oldest to newest
+      .skip(Number(skip))
+      .limit(Number(limit));
 
+    res.status(200).json(messages);
     return;
   } catch (error) {
-    res.status(400).json(`internal error`);
+    console.error("Message fetch error:", error);
+    res.status(500).json("Internal server error");
   }
 };
+
 const messageList = async (
   req: AuthenticatedRequest,
   res: Response
@@ -745,6 +793,7 @@ export {
   loginUser,
   logoutUser,
   profile,
+  userProfile,
   createArticle,
   listArticles,
   updateArticle,

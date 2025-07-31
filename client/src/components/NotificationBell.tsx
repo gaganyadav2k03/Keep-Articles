@@ -12,7 +12,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import { useEffect, useState } from "react";
 import axios from "../utils/axios";
-import { getSocket } from "../utils/socket"; // Socket instance
+import { getSocket } from "../utils/socket";
 import { useNavigate } from "react-router-dom";
 
 type Notification = {
@@ -27,88 +27,90 @@ type Notification = {
 type Props = {
   open: boolean;
   onClose: () => void;
+  setHasUnread?: (hasUnread: boolean) => void;
 };
 
-export default function NotificationDrawer({ open, onClose }: Props) {
+export default function NotificationDrawer({ open, onClose, setHasUnread }: Props) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const socket = getSocket();
 
-  // Fetch stored notifications
   useEffect(() => {
     if (open) {
       axios
         .get("/user/notifications")
-        .then((res) => setNotifications(res.data))
+        .then((res) => {
+          setNotifications(res.data);
+          if (setHasUnread) {
+            const hasUnread = res.data.some((n:Notification) => !n.read);
+            setHasUnread(hasUnread);
+          }
+        })
         .finally(() => setLoading(false));
     }
-  }, [open]);
+  }, [open, setHasUnread]);
 
-  // Handle incoming socket notifications
   useEffect(() => {
     socket.on("notification", (data: Notification) => {
-      console.log(data);
-      setNotifications((prev) => [data, ...prev]);
+      setNotifications((prev) => {
+        const updated = [data, ...prev];
+        if (setHasUnread) setHasUnread(true);
+        return updated;
+      });
     });
 
     return () => {
       socket.off("notification");
     };
-  }, [socket]);
+  }, [socket, setHasUnread]);
+
+  const markAllAsRead = async () => {
+    try {
+      await axios.put("/user/notificationsRead");
+      setNotifications((prev) =>
+        prev.map((n) => ({ ...n, read: true }))
+      );
+      if (setHasUnread) setHasUnread(false);
+    } catch (err) {
+      console.error("Failed to mark notifications as read", err);
+    } finally {
+      onClose();
+    }
+  };
 
   return (
     <Drawer anchor="right" open={open} onClose={onClose}>
       <Box sx={{ width: 350, p: 2 }}>
-        {/* Header */}
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="h6">🔔 Notifications</Typography>
-          <IconButton
-            onClick={async () => {
-              try {
-                await axios.put("/user/notificationsRead");
-                setNotifications((prev) =>
-                  prev.map((n) => ({ ...n, read: true }))
-                );
-              } catch (err) {
-                console.error("Failed to mark notifications as read", err);
-              } finally {
-                onClose();
-              }
-            }}
-          >
+          <IconButton onClick={markAllAsRead}>
             <CloseIcon />
           </IconButton>
         </Box>
 
         <Divider sx={{ my: 2 }} />
 
-        {/* Loading */}
         {loading ? (
           <Box textAlign="center" mt={4}>
             <CircularProgress />
           </Box>
         ) : (
           <List>
-            {/* Empty state */}
             {notifications.length === 0 ? (
               <Typography variant="body2" textAlign="center">
                 No notifications
               </Typography>
             ) : (
               notifications
-                .sort(
-                  (a, b) =>
-                    new Date(b.createdAt).getTime() -
-                    new Date(a.createdAt).getTime()
-                )
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                 .map((n) => (
                   <ListItemButton
                     key={n._id}
                     onClick={() => {
                       if (n.articleId) {
                         navigate(`/articles/${n.articleId}`);
-                        onClose(); // optional: close drawer after click
+                        onClose();
                       }
                     }}
                     sx={{

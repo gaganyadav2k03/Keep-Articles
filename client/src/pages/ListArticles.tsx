@@ -18,6 +18,8 @@ import { useNavigate } from "react-router-dom";
 import axios from "../utils/axios";
 import SearchBar from "../components/Searchbar";
 import { useAuth } from "../context/AuthContext";
+import ViewArticle from "./ViewArticle";
+// import { colors } from "../assets/colors"; // ✅ Custom color palette
 
 interface Article {
   id: string;
@@ -37,6 +39,8 @@ export default function ListArticles() {
   const [followingIds, setFollowingIds] = useState<string[]>(
     user?.following || []
   );
+  const [viewingArticleId, setViewingArticleId] = useState<string | null>(null);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const theme = useTheme();
@@ -50,6 +54,11 @@ export default function ListArticles() {
         a.description.toLowerCase().includes(keyword)
     );
     setFiltered(results);
+  };
+
+  const handleViewArticle = (id: string) => {
+    setViewingArticleId(id);
+    setViewModalOpen(true);
   };
 
   useEffect(() => {
@@ -139,12 +148,12 @@ export default function ListArticles() {
           gap: 2,
         }}
       >
-        <Box sx={{ flexGrow: 1, textAlign: "center" }}>
+        <Box sx={{ flexGrow: 1, textAlign:"center"}}>
           <Typography
             variant={isMobile ? "h5" : "h4"}
-            sx={{ fontWeight: 700, color: "#2c3e50" }}
+            sx={{ fontWeight: 700 }}
           >
-            🌍 Articles
+              Articles
           </Typography>
         </Box>
 
@@ -174,15 +183,13 @@ export default function ListArticles() {
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
-                background: "linear-gradient(135deg, #fdfbfb, #ebedee)",
+                // backgroundColor: colors.backgroundLight,
                 borderRadius: 3,
                 transition: "transform 0.3s ease, box-shadow 0.3s ease",
                 boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
                 "&:hover": {
                   transform: "translateY(-5px)",
                   boxShadow: "0 12px 24px rgba(0,0,0,0.15)",
-                  background:
-                    "linear-gradient(30deg,rgb(198, 206, 206),rgb(197, 208, 208))",
                 },
               }}
             >
@@ -203,7 +210,7 @@ export default function ListArticles() {
                 >
                   <Typography
                     variant="subtitle2"
-                    sx={{ fontWeight: 600, color: "#3c3c3c" }}
+                    sx={{ fontWeight: 600 }}
                   >
                     👤 {a.name}
                   </Typography>
@@ -213,9 +220,9 @@ export default function ListArticles() {
                       onClick={() => handleFollow(a.user)}
                       style={{
                         backgroundColor: followingIds.includes(a.user)
-                          ? "rgb(64, 130, 211)"
-                          : "rgb(90, 153, 231)",
-                        color: "#fff",
+                          ? "rgba(62, 154, 230, 1)"
+                          : "rgba(46, 150, 225, 1)",
+                        color: "#333",
                         padding: "4px 10px",
                         borderRadius: "6px",
                         fontSize: "12px",
@@ -233,13 +240,13 @@ export default function ListArticles() {
                   <Typography
                     variant="h6"
                     gutterBottom
-                    sx={{ fontWeight: 600, color: "#2c3e50" }}
+                    sx={{ fontWeight: 600 }}
                   >
                     {a.title}
                   </Typography>
                   <Typography
                     variant="body2"
-                    sx={{ color: "#444", lineHeight: 1.5 }}
+                    sx={{  lineHeight: 1.5 }}
                   >
                     {a.description.length > 100
                       ? `${a.description.slice(0, 100)}…`
@@ -259,7 +266,7 @@ export default function ListArticles() {
                       sx={{
                         color: likedIds.includes(a.id)
                           ? "rgb(250, 86, 132)"
-                          : "#888",
+                          : null,
                       }}
                     >
                       {likedIds.includes(a.id) ? (
@@ -269,17 +276,17 @@ export default function ListArticles() {
                       )}
                     </IconButton>
                     {a.likes.length !== 0 && (
-                      <Typography variant="body2" sx={{ color: "#333" }}>
+                      <Typography variant="body2" sx={{  }}>
                         {a.likes.length}
                       </Typography>
                     )}
                   </Box>
                   <IconButton
-                    onClick={() => navigate(`/articles/${a.id}`)}
+                    onClick={() => handleViewArticle(a.id)}
                     sx={{
                       "&:hover": {
-                        color: "#1565c0",
-                        backgroundColor: "rgba(21, 101, 192, 0.08)",
+                        // color: colors.sand,
+                        // backgroundColor: colors.beige,
                       },
                     }}
                   >
@@ -291,6 +298,11 @@ export default function ListArticles() {
           </Grid>
         ))}
       </Grid>
+      <ViewArticle
+        articleId={viewingArticleId}
+        open={viewModalOpen}
+        onClose={() => setViewModalOpen(false)}
+      />
     </Container>
   );
 }

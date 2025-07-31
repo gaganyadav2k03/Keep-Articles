@@ -17,8 +17,10 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import HistoryIcon from "@mui/icons-material/History";
 import { useNavigate } from "react-router-dom";
+import ViewArticle from "./ViewArticle";
 import axios from "../utils/axios";
 import { useAuth } from "../context/AuthContext";
+import { colors } from "../assets/colors"; // ✅ Import colors
 
 interface Article {
   id: string;
@@ -33,6 +35,8 @@ interface Article {
 export default function MyArticles() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewingArticleId, setViewingArticleId] = useState<string | null>(null);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -54,6 +58,11 @@ export default function MyArticles() {
     }
   };
 
+  const handleViewArticle = (id: string) => {
+    setViewingArticleId(id);
+    setViewModalOpen(true);
+  };
+
   return (
     <Container sx={{ mt: 6, mb: 4 }}>
       <Typography
@@ -62,7 +71,7 @@ export default function MyArticles() {
           fontWeight: 700,
           textAlign: "center",
           mb: 4,
-          color: "#2c3e50",
+        
         }}
       >
         🧾 My Articles
@@ -81,7 +90,7 @@ export default function MyArticles() {
           {articles.map((a) => (
             <Grid
               key={a.id}
-              size={{ xs: 12, sm: 6, md: 4 }}
+             size={{ xs: 12, sm: 6, md: 4 }}
               display="flex"
               alignItems="stretch"
             >
@@ -91,14 +100,12 @@ export default function MyArticles() {
                   display: "flex",
                   flexDirection: "column",
                   borderRadius: 3,
-                  background: "linear-gradient(135deg, #fdfbfb, #ebedee)",
+                  // background: `linear-gradient(135deg, ${colors.backgroundLight}, ${colors.beige})`,
                   boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
                   transition: "transform 0.3s ease, box-shadow 0.3s ease",
                   "&:hover": {
                     transform: "translateY(-5px)",
                     boxShadow: "0 12px 30px rgba(0, 0, 0, 0.15)",
-                    background:
-                      "linear-gradient(30deg,rgb(198, 206, 206),rgb(197, 208, 208))",
                   },
                 }}
               >
@@ -109,12 +116,11 @@ export default function MyArticles() {
                     flexGrow: 1,
                   }}
                 >
-                  {/* Content Area */}
                   <Box sx={{ flexGrow: 1 }}>
                     <Typography
                       variant="h6"
                       gutterBottom
-                      sx={{ fontWeight: 600, color: "#2c3e50" }}
+                      sx={{ fontWeight: 600,  }}
                     >
                       {a.title}
                     </Typography>
@@ -128,7 +134,6 @@ export default function MyArticles() {
                     </Typography>
                   </Box>
 
-                  {/* Bottom Row */}
                   <Box
                     mt={3}
                     display="flex"
@@ -138,11 +143,11 @@ export default function MyArticles() {
                     <Box display="flex" alignItems="center" gap={1}>
                       <Tooltip title="View">
                         <IconButton
-                          onClick={() => navigate(`/articles/${a.id}`)}
+                          onClick={() => handleViewArticle(a.id)}
                           sx={{
                             "&:hover": {
-                              color: "#1565c0",
-                              backgroundColor: "rgba(21, 101, 192, 0.08)",
+                              // color: colors.sand,
+                              backgroundColor: "rgba(16, 17, 18, 0.15)",
                             },
                           }}
                         >
@@ -157,8 +162,8 @@ export default function MyArticles() {
                               onClick={() => navigate(`/articles/${a.id}/edit`)}
                               sx={{
                                 "&:hover": {
-                                  color: "#388e3c",
-                                  backgroundColor: "rgba(56, 142, 60, 0.08)",
+                                  // color:"lightblue",
+                                  backgroundColor: "rgba(22, 20, 19, 0.15)",
                                 },
                               }}
                             >
@@ -187,8 +192,8 @@ export default function MyArticles() {
                               }
                               sx={{
                                 "&:hover": {
-                                  color: "#6a1b9a",
-                                  backgroundColor: "rgba(106, 27, 154, 0.08)",
+                                  color:"black",
+                                  backgroundColor: "rgba(26, 26, 25, 0.15)",
                                 },
                               }}
                             >
@@ -199,7 +204,6 @@ export default function MyArticles() {
                       )}
                     </Box>
 
-                    {/* Like Count */}
                     <Box display="flex" alignItems="center" gap={0.5}>
                       <IconButton
                         sx={{
@@ -221,6 +225,12 @@ export default function MyArticles() {
           ))}
         </Grid>
       )}
+
+      <ViewArticle
+        articleId={viewingArticleId}
+        open={viewModalOpen}
+        onClose={() => setViewModalOpen(false)}
+      />
     </Container>
   );
 }

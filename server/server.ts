@@ -16,7 +16,7 @@ const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
     origin: "http://localhost:5173", // frontend origin
-    credentials: true,               // allow cookies
+    credentials: true, // allow cookies
   },
 });
 
@@ -25,7 +25,7 @@ io.use(socketAuthMiddleware);
 
 // ✅ Map of connected users
 const connectedUsers = new Map<string, string>();
-console.log(connectedUsers,"bk-socket")
+console.log(connectedUsers, "bk-socket");
 
 const emitOnlineUsers = () => {
   const onlineUserIds = Array.from(connectedUsers.keys());
@@ -38,12 +38,23 @@ io.on("connection", (socket) => {
   if (user && user.id) {
     connectedUsers.set(user.id, socket.id);
     console.log(`✅ User connected: ${user.id} -> ${socket.id}`);
-     socket.on("get-online-users", () => {
-     console.log("get online users request from frontend")
-    emitOnlineUsers();})
+    socket.on("get-online-users", () => {
+      console.log("get online users request from frontend");
+      emitOnlineUsers();
+    });
 
     // emitOnlineUsers(); // Send updated list to everyone
   }
+  // ✅ ADD THIS BLOCK HERE
+  socket.on("typing", ({ to }) => {
+    const targetSocketId = connectedUsers.get(to);
+    if (targetSocketId) {
+      io.to(targetSocketId).emit("userTyping", {
+        from: user.id,
+        to,
+      });
+    }
+  });
 
   socket.on("disconnect", () => {
     if (user?.id) {
@@ -54,7 +65,6 @@ io.on("connection", (socket) => {
     }
   });
 });
-
 
 // ✅ Export io and connectedUsers for use in controllers
 export { io, connectedUsers };

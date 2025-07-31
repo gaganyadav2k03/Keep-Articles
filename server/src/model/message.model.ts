@@ -19,5 +19,6 @@ const MessageSchema= new mongoose.Schema({
 },{
   timestamps:true
 })
+MessageSchema.index({ sender: 1, receiver: 1, createdAt: 1 });
 
 export const Message: mongoose.Model<IMessage> = mongoose.model<IMessage>("Message", MessageSchema);

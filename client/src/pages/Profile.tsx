@@ -19,12 +19,13 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import SaveIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import axios from "../utils/axios";
 import { AxiosError } from "axios";
-// import { color } from "@mui/system";
+import { useNavigate } from "react-router-dom";
+import { colors } from "../assets/colors"; // ✅ Importing centralized colors
 
 interface Props {
   open: boolean;
@@ -43,6 +44,7 @@ export default function FloatingProfilePanel({ open, onClose }: Props) {
   const [name, setName] = useState(user?.name || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const navigate=useNavigate();
 
   const [modalType, setModalType] = useState<"followers" | "following" | null>(
     null
@@ -98,14 +100,37 @@ export default function FloatingProfilePanel({ open, onClose }: Props) {
             transform: "translateY(0%)",
             width: 400,
             maxHeight: "90%",
-            // background:"rgba(126, 121, 121, 0.3)",/
             p: 4,
             borderRadius: 4,
-            bgcolor: "rgb(203, 209, 210)",
+            // bgcolor: colors.backgroundLight, // ✅ Updated
             boxShadow: "0 12px 28px rgba(0,0,0,0.3)",
             outline: "none",
           }}
         >
+                      {/* Save Button */}
+            {isEditing && (
+              <Box textAlign="right" mt={2}>
+                <Button
+                  startIcon={<CheckCircleOutlineIcon />}
+                  variant="contained"
+                  onClick={handleSave}
+                  disabled={loading}
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: 600,
+                    height:"20px",
+                    width:"20px",
+                    // background: colors.sand, // ✅ Updated
+                    // px: 3,
+                    "&:hover": {
+                      // backgroundColor: colors.blush, // ✅ Updated
+                    },
+                  }}
+                >
+                
+                </Button>
+              </Box>
+            )}
           {/* Header */}
           <Box
             display="flex"
@@ -114,35 +139,33 @@ export default function FloatingProfilePanel({ open, onClose }: Props) {
             mb={2}
           >
             <Typography variant="h6" fontWeight={700} color="black">
-              👤 Your Profile
+              👤 {user?.name || user?.email}
             </Typography>
             <IconButton onClick={onClose}>
               <CloseIcon />
             </IconButton>
           </Box>
 
-          {/* Error */}
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
             </Alert>
           )}
+
           <Box height={"40%"}>
             {/* Profile Info */}
             <Box display="flex" flexDirection="column" gap={3}>
-              {/* Name */}
+              {/* Name Field */}
               <Box
                 sx={{
-                  background: "rgb(158, 164, 165)",
+                  // background: colors.sand, // ✅ Updated
                   borderRadius: 3,
                   p: 2,
                   boxShadow: "0 1px 5px rgba(0,0,0,0.1)",
                   position: "relative",
                 }}
               >
-                <Typography variant="caption" sx={{}}>
-                  Name
-                </Typography>
+                <Typography variant="caption">Name</Typography>
                 {isEditing ? (
                   <TextField
                     variant="standard"
@@ -171,15 +194,13 @@ export default function FloatingProfilePanel({ open, onClose }: Props) {
               {/* Email */}
               <Box
                 sx={{
-                  background: "rgb(158, 164, 165)",
+                  // background: colors.sand, // ✅ Updated
                   borderRadius: 3,
                   p: 2,
                   boxShadow: "0 1px 5px rgba(0,0,0,0.1)",
                 }}
               >
-                <Typography variant="caption" sx={{}}>
-                  Email
-                </Typography>
+                <Typography variant="caption">Email</Typography>
                 <Typography variant="body1" fontWeight={500}>
                   {user?.email}
                 </Typography>
@@ -191,8 +212,7 @@ export default function FloatingProfilePanel({ open, onClose }: Props) {
                   variant="contained"
                   onClick={() => openUserListModal("followers")}
                   sx={{
-                    background:
-                      "linear-gradient(to right,rgb(98, 97, 99),rgb(142, 171, 226))",
+                    // background: `linear-gradient(to right, ${colors.sand}, ${colors.beige})`,
                     color: "#fff",
                     px: 3,
                     fontWeight: 600,
@@ -201,8 +221,7 @@ export default function FloatingProfilePanel({ open, onClose }: Props) {
                     boxShadow: "0 4px 14px rgba(0, 0, 0, 0.15)",
                     transition: "all 0.3s ease",
                     "&:hover": {
-                      background:
-                        "linear-gradient(to right,rgb(57, 104, 129),rgb(53, 56, 60))",
+                      // background: `linear-gradient(to right, ${colors.beige}, ${colors.sand})`,
                       transform: "scale(1.03)",
                     },
                   }}
@@ -212,12 +231,12 @@ export default function FloatingProfilePanel({ open, onClose }: Props) {
                     ? user?.followers?.length
                     : null}
                 </Button>
+
                 <Button
                   variant="contained"
                   onClick={() => openUserListModal("following")}
                   sx={{
-                    background:
-                      "linear-gradient(to right,rgb(73, 68, 69),rgb(75, 126, 171))",
+                    // background: `linear-gradient(to right, ${colors.beige}, ${colors.blush})`,
                     color: "#fff",
                     px: 3,
                     fontWeight: 600,
@@ -226,8 +245,7 @@ export default function FloatingProfilePanel({ open, onClose }: Props) {
                     boxShadow: "0 4px 14px rgba(0, 0, 0, 0.15)",
                     transition: "all 0.3s ease",
                     "&:hover": {
-                      background:
-                        "linear-gradient(to right,rgb(97, 150, 194),rgb(99, 92, 90))",
+                      // background: `linear-gradient(to right, ${colors.blush}, ${colors.beige})`,
                       transform: "scale(1.03)",
                     },
                   }}
@@ -239,7 +257,8 @@ export default function FloatingProfilePanel({ open, onClose }: Props) {
                 </Button>
               </Box>
             </Box>
-            {/* User List */}
+
+            {/* Followers / Following List */}
             {modalType && (
               <>
                 <Divider sx={{ my: 2 }} />
@@ -268,6 +287,7 @@ export default function FloatingProfilePanel({ open, onClose }: Props) {
                       {userList.map((u) => (
                         <ListItem
                           key={u.id}
+                          onClick={()=>navigate(`/user/${u.id}`)}
                           sx={{
                             borderRadius: 2,
                             mb: 1,
@@ -275,7 +295,7 @@ export default function FloatingProfilePanel({ open, onClose }: Props) {
                             cursor: "pointer",
                             transition: "background 0.3s",
                             "&:hover": {
-                              backgroundColor: "#f5f5f5",
+                              // backgroundColor: colors.beige, // ✅ Updated
                               boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
                             },
                           }}
@@ -294,9 +314,9 @@ export default function FloatingProfilePanel({ open, onClose }: Props) {
               </>
             )}
 
-            {/* Save */}
+            {/* Save Button
             {isEditing && (
-              <Box textAlign="right">
+              <Box textAlign="right" mt={2}>
                 <Button
                   startIcon={<SaveIcon />}
                   variant="contained"
@@ -305,17 +325,18 @@ export default function FloatingProfilePanel({ open, onClose }: Props) {
                   sx={{
                     textTransform: "none",
                     fontWeight: 600,
-                    background: "#1976d2",
-                    px: 3,
+                    height:"30px",
+                    // background: colors.sand, // ✅ Updated
+                    // px: 3,
                     "&:hover": {
-                      backgroundColor: "#1565c0",
+                      // backgroundColor: colors.blush, // ✅ Updated
                     },
                   }}
                 >
-                  {loading ? "Saving..." : "Save"}
+                
                 </Button>
               </Box>
-            )}
+            )} */}
           </Box>
         </Paper>
       </Fade>
